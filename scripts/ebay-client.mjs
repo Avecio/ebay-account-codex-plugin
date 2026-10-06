@@ -25,6 +25,7 @@ export function loadConfig() {
     clientSecret: process.env.EBAY_CLIENT_SECRET || "",
     redirectUri: process.env.EBAY_REDIRECT_URI || "",
     mcpApiKey: process.env.EBAY_MCP_API_KEY || "",
+    enableWriteTools: (process.env.EBAY_ENABLE_WRITE_TOOLS || "").toLowerCase() === "true",
     scopes: splitScopes(process.env.EBAY_SCOPES).length
       ? splitScopes(process.env.EBAY_SCOPES)
       : DEFAULT_SCOPES,
