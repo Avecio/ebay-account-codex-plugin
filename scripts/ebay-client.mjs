@@ -1,19 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-  const DEFAULT_SCOPES = [
-  "https://api.ebay.com/oauth/api_scope",
-  "https://api.ebay.com/oauth/api_scope/buy.item.feed",
-  "https://api.ebay.com/oauth/api_scope/buy.marketing",
+const DEFAULT_SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.inventory.readonly",
-  "https://api.ebay.com/oauth/api_scope/sell.inventory",
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
-  "https://api.ebay.com/oauth/api_scope/sell.fulfillment",
   "https://api.ebay.com/oauth/api_scope/sell.account.readonly",
-  "https://api.ebay.com/oauth/api_scope/sell.account",
   "https://api.ebay.com/oauth/api_scope/commerce.identity.readonly",
   "https://api.ebay.com/oauth/api_scope/commerce.message.readonly",
-  "https://api.ebay.com/oauth/api_scope/commerce.message",
 ];
 
 export function loadConfig() {
