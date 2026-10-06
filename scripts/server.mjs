@@ -1,5 +1,5 @@
 import express from "express";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import * as z from "zod/v4";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -38,6 +38,25 @@ function requireConfirmation({ confirm, confirmationText }, phrase) {
 function pathPart(value, name) {
   if (!value || typeof value !== "string") throw new Error(`${name} is required`);
   return encodeURIComponent(value);
+}
+
+function requireMcpAuth(config, req, res, next) {
+  if (!config.mcpApiKey) {
+    res.status(503).json({ error: "MCP authentication is not configured." });
+    return;
+  }
+
+  const provided = Buffer.from(req.get("authorization") || "", "utf8");
+  const expected = Buffer.from(`Bearer ${config.mcpApiKey}`, "utf8");
+  const valid = provided.length === expected.length && timingSafeEqual(provided, expected);
+
+  if (!valid) {
+    res.setHeader("www-authenticate", 'Bearer realm="ebay-account-mcp"');
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  next();
 }
 
 function buildServer(config) {
@@ -614,12 +633,12 @@ async function main() {
   app.options("/mcp", (_req, res) => {
     res.setHeader("access-control-allow-origin", "*");
     res.setHeader("access-control-allow-methods", "GET,POST,DELETE,OPTIONS");
-    res.setHeader("access-control-allow-headers", "content-type,mcp-session-id");
+    res.setHeader("access-control-allow-headers", "authorization,content-type,mcp-session-id");
     res.status(204).end();
   });
-  app.post("/mcp", handlePost);
-  app.get("/mcp", handleSessionRequest);
-  app.delete("/mcp", handleSessionRequest);
+  app.post("/mcp", (req, res, next) => requireMcpAuth(config, req, res, next), handlePost);
+  app.get("/mcp", (req, res, next) => requireMcpAuth(config, req, res, next), handleSessionRequest);
+  app.delete("/mcp", (req, res, next) => requireMcpAuth(config, req, res, next), handleSessionRequest);
 
   app.listen(config.port, config.host, () => {
     console.log(JSON.stringify({
