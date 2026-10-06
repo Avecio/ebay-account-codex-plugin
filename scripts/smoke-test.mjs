@@ -34,6 +34,8 @@ async function postJson(url, body, headers = {}) {
 
 const host = process.env.EBAY_MCP_HOST || "127.0.0.1";
 const port = process.env.EBAY_MCP_PORT || "4318";
+const apiKey = process.env.EBAY_MCP_API_KEY || "smoke-test-only-key";
+const authHeaders = { authorization: `Bearer ${apiKey}` };
 const child = spawn("node", ["scripts/server.mjs"], {
   cwd: new URL("..", import.meta.url),
   windowsHide: true,
@@ -41,6 +43,8 @@ const child = spawn("node", ["scripts/server.mjs"], {
     ...process.env,
     EBAY_MCP_HOST: host,
     EBAY_MCP_PORT: port,
+    EBAY_MCP_API_KEY: apiKey,
+    EBAY_ENABLE_WRITE_TOOLS: "false",
   },
 });
 
@@ -62,7 +66,7 @@ try {
       capabilities: {},
       clientInfo: { name: "ebay-account-smoke-test", version: "1.0.0" },
     },
-  });
+  }, authHeaders);
 
   assert.equal(init.status, 200, `initialize failed: ${init.text}\n${stderr}`);
   const sessionId = init.headers.get("mcp-session-id");
@@ -74,6 +78,7 @@ try {
     method: "tools/list",
     params: {},
   }, {
+    ...authHeaders,
     "mcp-session-id": sessionId,
   });
   assert.equal(listTools.status, 200, `tools/list failed: ${listTools.text}`);
@@ -87,7 +92,8 @@ try {
   assert.match(listTools.text, /ebay_get_payment_policies/);
   assert.match(listTools.text, /ebay_search_marketplace/);
   assert.match(listTools.text, /ebay_list_message_conversations/);
-  assert.match(listTools.text, /ebay_send_message/);
+  assert.doesNotMatch(listTools.text, /ebay_send_message/);
+  assert.doesNotMatch(listTools.text, /ebay_publish_offer/);
 
   const status = await postJson(endpoint, {
     jsonrpc: "2.0",
@@ -98,6 +104,7 @@ try {
       arguments: {},
     },
   }, {
+    ...authHeaders,
     "mcp-session-id": sessionId,
   });
   assert.equal(status.status, 200, `status failed: ${status.text}`);
