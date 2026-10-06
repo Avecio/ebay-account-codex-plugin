@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Codex and ChatGPT MCP plugin for connecting to an eBay account with OAuth-backed tools.",
   "scripts": {
-    "start": "node scripts/server.mjs",
+    "start": "node --env-file=.env scripts/server.mjs",
     "smoke": "node scripts/smoke-test.mjs",
     "check": "node --check scripts/server.mjs && node --check scripts/ebay-client.mjs && node --check scripts/smoke-test.mjs"
   },
