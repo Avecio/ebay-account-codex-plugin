@@ -129,44 +129,50 @@ function buildServer(config) {
     return toToolResult(item);
   });
 
+  if (config.enableWriteTools) {
   server.registerTool("ebay_create_or_replace_inventory_item", {
-    title: "Create or replace eBay inventory item",
-    description: "Use this when the user explicitly wants to create or replace inventory data for one SKU.",
-    inputSchema: {
-      sku: z.string(),
-      inventoryItem: z.record(z.string(), z.any()),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: false,
-    },
-  }, async ({ sku, inventoryItem, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "replace inventory item");
-    const result = await ebayPut(config, `/sell/inventory/v1/inventory_item/${pathPart(sku, "sku")}`, inventoryItem);
-    return toToolResult(result || { ok: true, sku });
-  });
+      title: "Create or replace eBay inventory item",
+      description: "Use this when the user explicitly wants to create or replace inventory data for one SKU.",
+      inputSchema: {
+        sku: z.string(),
+        inventoryItem: z.record(z.string(), z.any()),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    }, async ({ sku, inventoryItem, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "replace inventory item");
+      const result = await ebayPut(config, `/sell/inventory/v1/inventory_item/${pathPart(sku, "sku")}`, inventoryItem);
+      return toToolResult(result || { ok: true, sku });
+    });
 
+    }
+
+  if (config.enableWriteTools) {
   server.registerTool("ebay_delete_inventory_item", {
-    title: "Delete eBay inventory item",
-    description: "Use this when the user explicitly wants to delete inventory data for one SKU.",
-    inputSchema: {
-      sku: z.string(),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: true,
-      openWorldHint: false,
-    },
-  }, async ({ sku, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "delete inventory item");
-    const result = await ebayDelete(config, `/sell/inventory/v1/inventory_item/${pathPart(sku, "sku")}`);
-    return toToolResult(result || { ok: true, sku });
-  });
+      title: "Delete eBay inventory item",
+      description: "Use this when the user explicitly wants to delete inventory data for one SKU.",
+      inputSchema: {
+        sku: z.string(),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+      },
+    }, async ({ sku, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "delete inventory item");
+      const result = await ebayDelete(config, `/sell/inventory/v1/inventory_item/${pathPart(sku, "sku")}`);
+      return toToolResult(result || { ok: true, sku });
+    });
+
+    }
 
   server.registerTool("ebay_get_inventory_locations", {
     title: "Get eBay inventory locations",
@@ -227,63 +233,72 @@ function buildServer(config) {
     return toToolResult(offer);
   });
 
+  if (config.enableWriteTools) {
   server.registerTool("ebay_create_offer", {
-    title: "Create eBay offer",
-    description: "Use this when the user explicitly wants to create an unpublished eBay offer for inventory.",
-    inputSchema: {
-      offer: z.record(z.string(), z.any()),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: false,
-    },
-  }, async ({ offer, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "create offer");
-    const result = await ebayPost(config, "/sell/inventory/v1/offer", offer);
-    return toToolResult(result);
-  });
+      title: "Create eBay offer",
+      description: "Use this when the user explicitly wants to create an unpublished eBay offer for inventory.",
+      inputSchema: {
+        offer: z.record(z.string(), z.any()),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    }, async ({ offer, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "create offer");
+      const result = await ebayPost(config, "/sell/inventory/v1/offer", offer);
+      return toToolResult(result);
+    });
 
+    }
+
+  if (config.enableWriteTools) {
   server.registerTool("ebay_update_offer", {
-    title: "Update eBay offer",
-    description: "Use this when the user explicitly wants to update an eBay offer/listing.",
-    inputSchema: {
-      offerId: z.string(),
-      offer: z.record(z.string(), z.any()),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: true,
-    },
-  }, async ({ offerId, offer, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "update offer");
-    const result = await ebayPut(config, `/sell/inventory/v1/offer/${pathPart(offerId, "offerId")}`, offer);
-    return toToolResult(result || { ok: true, offerId });
-  });
+      title: "Update eBay offer",
+      description: "Use this when the user explicitly wants to update an eBay offer/listing.",
+      inputSchema: {
+        offerId: z.string(),
+        offer: z.record(z.string(), z.any()),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    }, async ({ offerId, offer, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "update offer");
+      const result = await ebayPut(config, `/sell/inventory/v1/offer/${pathPart(offerId, "offerId")}`, offer);
+      return toToolResult(result || { ok: true, offerId });
+    });
 
+    }
+
+  if (config.enableWriteTools) {
   server.registerTool("ebay_publish_offer", {
-    title: "Publish eBay offer",
-    description: "Use this when the user explicitly wants to publish an offer as a live eBay listing.",
-    inputSchema: {
-      offerId: z.string(),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: true,
-    },
-  }, async ({ offerId, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "publish offer");
-    const result = await ebayPost(config, `/sell/inventory/v1/offer/${pathPart(offerId, "offerId")}/publish`);
-    return toToolResult(result);
-  });
+      title: "Publish eBay offer",
+      description: "Use this when the user explicitly wants to publish an offer as a live eBay listing.",
+      inputSchema: {
+        offerId: z.string(),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    }, async ({ offerId, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "publish offer");
+      const result = await ebayPost(config, `/sell/inventory/v1/offer/${pathPart(offerId, "offerId")}/publish`);
+      return toToolResult(result);
+    });
+
+    }
 
   server.registerTool("ebay_get_orders", {
     title: "Get eBay orders",
@@ -335,31 +350,34 @@ function buildServer(config) {
     return toToolResult(fulfillments);
   });
 
+  if (config.enableWriteTools) {
   server.registerTool("ebay_add_shipping_tracking", {
-    title: "Add eBay shipping tracking",
-    description: "Use this when the user explicitly wants to add shipment tracking to an eBay order.",
-    inputSchema: {
-      orderId: z.string(),
-      trackingNumber: z.string(),
-      shippingCarrierCode: z.string(),
-      lineItems: z.array(z.record(z.string(), z.any())).optional(),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: true,
-    },
-  }, async ({ orderId, trackingNumber, shippingCarrierCode, lineItems, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "add shipping tracking");
-    const result = await ebayPost(config, `/sell/fulfillment/v1/order/${pathPart(orderId, "orderId")}/shipping_fulfillment`, {
-      trackingNumber,
-      shippingCarrierCode,
-      lineItems,
+      title: "Add eBay shipping tracking",
+      description: "Use this when the user explicitly wants to add shipment tracking to an eBay order.",
+      inputSchema: {
+        orderId: z.string(),
+        trackingNumber: z.string(),
+        shippingCarrierCode: z.string(),
+        lineItems: z.array(z.record(z.string(), z.any())).optional(),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    }, async ({ orderId, trackingNumber, shippingCarrierCode, lineItems, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "add shipping tracking");
+      const result = await ebayPost(config, `/sell/fulfillment/v1/order/${pathPart(orderId, "orderId")}/shipping_fulfillment`, {
+        trackingNumber,
+        shippingCarrierCode,
+        lineItems,
+      });
+      return toToolResult(result);
     });
-    return toToolResult(result);
-  });
+
+    }
 
   server.registerTool("ebay_get_payment_policies", {
     title: "Get eBay payment policies",
@@ -480,27 +498,30 @@ function buildServer(config) {
     return toToolResult(conversation);
   });
 
+  if (config.enableWriteTools) {
   server.registerTool("ebay_send_message", {
-    title: "Send eBay message",
-    description: "Use this only after the user explicitly approves sending a buyer/seller message.",
-    inputSchema: {
-      conversationId: z.string(),
-      message: z.record(z.string(), z.any()),
-      confirm: z.boolean(),
-      confirmationText: z.string(),
-    },
-    annotations: {
-      readOnlyHint: false,
-      destructiveHint: false,
-      openWorldHint: true,
-    },
-  }, async ({ conversationId, message, confirm, confirmationText }) => {
-    requireConfirmation({ confirm, confirmationText }, "send ebay message");
-    const result = await ebayPost(config, `/commerce/message/v1/conversation/${pathPart(conversationId, "conversationId")}/message`, message);
-    return toToolResult(result);
-  });
+      title: "Send eBay message",
+      description: "Use this only after the user explicitly approves sending a buyer/seller message.",
+      inputSchema: {
+        conversationId: z.string(),
+        message: z.record(z.string(), z.any()),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    }, async ({ conversationId, message, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "send ebay message");
+      const result = await ebayPost(config, `/commerce/message/v1/conversation/${pathPart(conversationId, "conversationId")}/message`, message);
+      return toToolResult(result);
+    });
 
-  return server;
+}
+
+    return server;
 }
 
 function marketplaceAccountDeletionChallenge(config, challengeCode) {
