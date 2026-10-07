@@ -227,7 +227,7 @@ export async function ebayCreateSellerHubDraft(config, {
   marketplaceId = "EBAY_GB",
 } = {}) {
   if (config.env !== "production") {
-    throw new Error("Seller Hub FX_LISTING draft uploads are only available in eBay Production.");
+    throw new Error("Seller Hub draft uploads are only available in eBay Production.");
   }
 
   const normalizedCategoryId = String(categoryId ?? "").trim();
@@ -249,7 +249,7 @@ export async function ebayCreateSellerHubDraft(config, {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      feedType: "FX_LISTING",
+      feedType: "FX_DRAFT",
       schemaVersion: "1.0",
     }),
   });
