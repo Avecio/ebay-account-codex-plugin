@@ -9,6 +9,7 @@ import {
   buildAuthorizationUrl,
   ebayDelete,
   ebayGet,
+  ebayGetActiveListings,
   ebayPost,
   ebayPut,
   exchangeCodeForTokens,
@@ -111,6 +112,27 @@ function buildServer(config) {
   }, async ({ limit = 25, offset = 0 }) => {
     const inventory = await ebayGet(config, "/sell/inventory/v1/inventory_item", { limit, offset });
     return toToolResult(inventory);
+  });
+
+  server.registerTool("ebay_get_active_listings", {
+    title: "Get active eBay listings",
+    description: "Use this when the user asks for their current live eBay listings, including listings created manually in eBay or Seller Hub.",
+    inputSchema: {
+      limit: z.number().int().min(1).max(200).optional(),
+      page: z.number().int().min(1).optional(),
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+  }, async ({ limit = 25, page = 1 }) => {
+    const listings = await ebayGetActiveListings(config, {
+      entriesPerPage: limit,
+      pageNumber: page,
+      siteId: "3",
+    });
+    return toToolResult(listings);
   });
 
   server.registerTool("ebay_get_inventory_item", {
