@@ -140,6 +140,77 @@ export async function getValidAccessToken(config) {
   return nextTokens.access_token;
 }
 
+export async function ebayGetActiveListings(config, {
+  entriesPerPage = 25,
+  pageNumber = 1,
+  siteId = "3",
+} = {}) {
+  const accessToken = await getValidAccessToken(config);
+  const gateway = config.env === "production"
+    ? "https://api.ebay.com/ws/api.dll"
+    : "https://api.sandbox.ebay.com/ws/api.dll";
+
+  const requestXml = `<?xml version="1.0" encoding="utf-8"?>
+<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <ActiveList>
+    <Include>true</Include>
+    <Pagination>
+      <EntriesPerPage>${entriesPerPage}</EntriesPerPage>
+      <PageNumber>${pageNumber}</PageNumber>
+    </Pagination>
+  </ActiveList>
+</GetMyeBaySellingRequest>`;
+
+  const response = await fetch(gateway, {
+    method: "POST",
+    headers: {
+      "content-type": "text/xml",
+      "x-ebay-api-call-name": "GetMyeBaySelling",
+      "x-ebay-api-compatibility-level": "1487",
+      "x-ebay-api-siteid": String(siteId),
+      "x-ebay-api-iaf-token": accessToken,
+    },
+    body: requestXml,
+  });
+
+  const xml = await response.text();
+  const ack = xmlText(xml, "Ack");
+  if (!response.ok || ack === "Failure") {
+    const message = xmlText(xml, "LongMessage") || xmlText(xml, "ShortMessage") || xml.slice(0, 1000);
+    throw new Error(`eBay Trading API request failed (${response.status} GetMyeBaySelling): ${message}`);
+  }
+
+  const activeList = xmlBlock(xml, "ActiveList") || "";
+  const itemArray = xmlBlock(activeList, "ItemArray") || "";
+  const items = [...itemArray.matchAll(/<Item>([\s\S]*?)<\/Item>/g)].map((match) => {
+    const item = match[1];
+    const currentPrice = xmlMoney(item, "CurrentPrice");
+    const startPrice = xmlMoney(item, "StartPrice");
+    return {
+      itemId: xmlText(item, "ItemID") || null,
+      title: xmlText(item, "Title") || null,
+      sku: xmlText(item, "SKU") || null,
+      listingType: xmlText(item, "ListingType") || null,
+      currentPrice,
+      startPrice,
+      quantity: xmlNumber(item, "Quantity"),
+      quantityAvailable: xmlNumber(item, "QuantityAvailable"),
+      quantitySold: xmlNumber(item, "QuantitySold"),
+      watchCount: xmlNumber(item, "WatchCount"),
+      timeLeft: xmlText(item, "TimeLeft") || null,
+      viewItemUrl: xmlText(item, "ViewItemURL") || null,
+    };
+  });
+
+  return {
+    total: xmlNumber(activeList, "TotalNumberOfEntries") ?? items.length,
+    totalPages: xmlNumber(activeList, "TotalNumberOfPages") ?? null,
+    pageNumber,
+    entriesPerPage,
+    items,
+  };
+}
+
 export async function ebayGet(config, path, query = {}, options = {}) {
   return ebayRequest(config, "GET", path, { query, ...options });
 }
@@ -204,6 +275,46 @@ export function publicConnectionStatus(config, tokens) {
     hasRefreshToken: Boolean(tokens?.refresh_token),
     scopes: config.scopes,
   };
+}
+
+function xmlBlock(xml, tag) {
+  const match = xml.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`));
+  return match ? match[1] : null;
+}
+
+function xmlText(xml, tag) {
+  const value = xmlBlock(xml, tag);
+  return value === null ? null : decodeXml(value.replace(/<[^>]+>/g, "").trim());
+}
+
+function xmlNumber(xml, tag) {
+  const value = xmlText(xml, tag);
+  if (value === null || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function xmlMoney(xml, tag) {
+  const match = xml.match(new RegExp(`<${tag}\\b([^>]*)>([\\s\\S]*?)<\\/${tag}>`));
+  if (!match) return null;
+  const currencyMatch = match[1].match(/currencyID="([^"]+)"/);
+  const value = Number(decodeXml(match[2].replace(/<[^>]+>/g, "").trim()));
+  if (!Number.isFinite(value)) return null;
+  return {
+    value,
+    currency: currencyMatch ? decodeXml(currencyMatch[1]) : null,
+  };
+}
+
+function decodeXml(value) {
+  return String(value)
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&#(\d+);/g, (_match, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_match, code) => String.fromCodePoint(Number.parseInt(code, 16)));
 }
 
 async function readJsonResponse(response) {
