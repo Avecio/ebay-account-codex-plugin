@@ -7,9 +7,11 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
 import {
   buildAuthorizationUrl,
+  ebayCreateSellerHubDraft,
   ebayDelete,
   ebayGet,
   ebayGetActiveListings,
+  ebayGetFeedTask,
   ebayPost,
   ebayPut,
   exchangeCodeForTokens,
@@ -134,6 +136,78 @@ function buildServer(config) {
     });
     return toToolResult(listings);
   });
+
+  const draftScope = "https://api.ebay.com/oauth/api_scope/sell.inventory";
+  if (config.enableDraftTools && config.scopes.includes(draftScope)) {
+    server.registerTool("ebay_create_draft", {
+      title: "Create eBay Seller Hub draft",
+      description: "Creates one unpublished Seller Hub draft through the FX_LISTING Draft action. This tool cannot publish, revise, end, relist, message, refund, or add tracking.",
+      inputSchema: {
+        categoryId: z.string().regex(/^\\d+$/),
+        title: z.string().max(80).optional(),
+        sku: z.string().max(100).optional(),
+        upc: z.string().max(32).optional(),
+        price: z.number().positive().optional(),
+        quantity: z.number().int().positive().optional(),
+        photoUrls: z.array(z.string().url()).max(24).optional(),
+        condition: z.enum(["NEW", "USED"]).optional(),
+        description: z.string().optional(),
+        format: z.enum(["Auction", "FixedPrice"]).optional(),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    }, async ({
+      categoryId,
+      title,
+      sku,
+      upc,
+      price,
+      quantity,
+      photoUrls,
+      condition,
+      description,
+      format,
+      confirm,
+      confirmationText,
+    }) => {
+      requireConfirmation({ confirm, confirmationText }, "create ebay draft");
+      const result = await ebayCreateSellerHubDraft(config, {
+        categoryId,
+        title,
+        sku,
+        upc,
+        price,
+        quantity,
+        photoUrls,
+        condition,
+        description,
+        format,
+        marketplaceId: "EBAY_GB",
+      });
+      return toToolResult(result);
+    });
+
+    server.registerTool("ebay_get_draft_task", {
+      title: "Get eBay draft task status",
+      description: "Checks the processing status of a Seller Hub draft feed task. Read-only.",
+      inputSchema: {
+        taskId: z.string(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    }, async ({ taskId }) => {
+      const result = await ebayGetFeedTask(config, taskId, { marketplaceId: "EBAY_GB" });
+      return toToolResult(result);
+    });
+  }
 
   server.registerTool("ebay_get_inventory_item", {
     title: "Get eBay inventory item",
