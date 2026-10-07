@@ -222,6 +222,8 @@ export async function ebayCreateSellerHubDraft(config, {
   quantity,
   photoUrls = [],
   condition,
+  conditionId,
+  itemSpecifics = {},
   description,
   format,
   marketplaceId = "EBAY_GB",
@@ -281,6 +283,8 @@ export async function ebayCreateSellerHubDraft(config, {
     quantity,
     photoUrls,
     condition,
+    conditionId,
+    itemSpecifics,
     description,
     format,
   });
@@ -372,6 +376,8 @@ function buildSellerHubDraftCsv({
   quantity,
   photoUrls = [],
   condition,
+  conditionId,
+  itemSpecifics = {},
   description,
   format,
 }) {
@@ -385,6 +391,9 @@ function buildSellerHubDraftCsv({
     "#INFO,,,,,,,,,,",
   ];
 
+  const specificEntries = Object.entries(itemSpecifics || {})
+    .filter(([name, value]) => String(name).trim() && value !== undefined && value !== null && String(value).trim());
+
   const headers = [
     "Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)",
     "Custom label (SKU)",
@@ -397,6 +406,7 @@ function buildSellerHubDraftCsv({
     "Condition ID",
     "Description",
     "Format",
+    ...specificEntries.map(([name]) => `C:${String(name).trim()}`),
   ];
   const row = [
     "Draft",
@@ -407,9 +417,10 @@ function buildSellerHubDraftCsv({
     price,
     quantity,
     photoUrls.filter(Boolean).join("|"),
-    condition,
+    conditionId ?? condition,
     description,
     format,
+    ...specificEntries.map(([, value]) => String(value).trim()),
   ];
 
   return [
@@ -423,6 +434,53 @@ function buildSellerHubDraftCsv({
 function csvCell(value) {
   if (value === undefined || value === null) return '""';
   return `"${String(value).replace(/"/g, '""')}"`;
+}
+
+export async function ebayGetCategoryConditionPolicies(config, categoryId, {
+  marketplaceId = "EBAY_GB",
+} = {}) {
+  const normalizedCategoryId = String(categoryId ?? "").trim();
+  if (!/^\d+$/.test(normalizedCategoryId)) {
+    throw new Error("categoryId must be a numeric eBay category ID.");
+  }
+
+  return ebayGet(
+    config,
+    `/sell/metadata/v1/marketplace/${encodeURIComponent(marketplaceId)}/get_item_condition_policies`,
+    { filter: `categoryIds:{${normalizedCategoryId}}` },
+  );
+}
+
+export async function ebayGetCategoryAspects(config, categoryId, {
+  marketplaceId = "EBAY_GB",
+} = {}) {
+  const normalizedCategoryId = String(categoryId ?? "").trim();
+  if (!/^\d+$/.test(normalizedCategoryId)) {
+    throw new Error("categoryId must be a numeric eBay category ID.");
+  }
+
+  const tree = await ebayGet(
+    config,
+    "/commerce/taxonomy/v1/get_default_category_tree_id",
+    { marketplace_id: marketplaceId },
+  );
+  const categoryTreeId = tree.categoryTreeId;
+  if (!categoryTreeId) {
+    throw new Error(`eBay did not return a category tree ID for ${marketplaceId}.`);
+  }
+
+  const aspects = await ebayGet(
+    config,
+    `/commerce/taxonomy/v1/category_tree/${encodeURIComponent(categoryTreeId)}/get_item_aspects_for_category`,
+    { category_id: normalizedCategoryId },
+  );
+
+  return {
+    marketplaceId,
+    categoryTreeId,
+    categoryId: normalizedCategoryId,
+    ...aspects,
+  };
 }
 
 export async function ebayGet(config, path, query = {}, options = {}) {
