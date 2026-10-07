@@ -45,6 +45,7 @@ const child = spawn("node", ["scripts/server.mjs"], {
     EBAY_MCP_PORT: port,
     EBAY_MCP_API_KEY: apiKey,
     EBAY_ENABLE_WRITE_TOOLS: "false",
+    EBAY_ENABLE_DRAFT_TOOLS: "false",
   },
 });
 
@@ -96,6 +97,8 @@ try {
   assert.doesNotMatch(listTools.text, /ebay_get_message_conversation/);
   assert.doesNotMatch(listTools.text, /ebay_send_message/);
   assert.doesNotMatch(listTools.text, /ebay_publish_offer/);
+  assert.doesNotMatch(listTools.text, /ebay_create_draft/);
+  assert.doesNotMatch(listTools.text, /ebay_get_draft_task/);
 
   const status = await postJson(endpoint, {
     jsonrpc: "2.0",
