@@ -14,7 +14,7 @@ Current operating mode is \*\*DRAFT ONLY / READ ONLY\*\*.
 
 
 
-Do not create, edit, publish, end, revise, delete, relist, refund, send messages, add tracking, or otherwise change anything on eBay.
+The only permitted eBay state change is creating an unpublished Seller Hub draft through the dedicated draft tool when the user explicitly asks for a real eBay draft. Do not publish, edit live listings, end, revise, delete, relist, refund, send messages, add tracking, or otherwise change live eBay state.
 
 
 
@@ -144,7 +144,7 @@ A draft is not approval to publish.
 
 
 
-Even if the user says a draft looks good, current mode remains read-only until the connector is deliberately upgraded in a separate safety-controlled step.
+Even if the user says a draft looks good, that is not approval to publish. Publishing remains unavailable until a separate safety-controlled upgrade is explicitly requested.
 
 
 
