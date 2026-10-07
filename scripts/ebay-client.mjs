@@ -26,6 +26,7 @@ export function loadConfig() {
     redirectUri: process.env.EBAY_REDIRECT_URI || "",
     mcpApiKey: process.env.EBAY_MCP_API_KEY || "",
     enableWriteTools: (process.env.EBAY_ENABLE_WRITE_TOOLS || "").toLowerCase() === "true",
+    enableDraftTools: (process.env.EBAY_ENABLE_DRAFT_TOOLS || "").toLowerCase() === "true",
     scopes: splitScopes(process.env.EBAY_SCOPES).length
       ? splitScopes(process.env.EBAY_SCOPES)
       : DEFAULT_SCOPES,
@@ -211,6 +212,162 @@ export async function ebayGetActiveListings(config, {
   };
 }
 
+export async function ebayCreateSellerHubDraft(config, {
+  categoryId,
+  title,
+  sku,
+  upc,
+  price,
+  quantity,
+  photoUrls = [],
+  condition,
+  description,
+  format,
+  marketplaceId = "EBAY_GB",
+} = {}) {
+  if (config.env !== "production") {
+    throw new Error("Seller Hub FX_LISTING draft uploads are only available in eBay Production.");
+  }
+
+  const normalizedCategoryId = String(categoryId ?? "").trim();
+  if (!/^\d+$/.test(normalizedCategoryId)) {
+    throw new Error("categoryId must be a numeric eBay category ID.");
+  }
+
+  const accessToken = await getValidAccessToken(config);
+  const commonHeaders = {
+    authorization: `Bearer ${accessToken}`,
+    accept: "application/json",
+    "x-ebay-c-marketplace-id": marketplaceId,
+  };
+
+  const createResponse = await fetch(`${config.apiBaseUrl}/sell/feed/v1/task`, {
+    method: "POST",
+    headers: {
+      ...commonHeaders,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      feedType: "FX_LISTING",
+      schemaVersion: "1.0",
+    }),
+  });
+
+  const createText = await createResponse.text();
+  if (!createResponse.ok) {
+    throw new Error(`eBay Feed createTask failed (${createResponse.status}): ${createText || "no response body"}`);
+  }
+
+  const location = createResponse.headers.get("location") || "";
+  let taskId = location.split("/").filter(Boolean).at(-1) || "";
+  if (!taskId && createText) {
+    try {
+      const payload = JSON.parse(createText);
+      taskId = payload.taskId || payload.task_id || "";
+    } catch {
+    }
+  }
+  if (!taskId) {
+    throw new Error("eBay Feed createTask succeeded but no task ID was returned.");
+  }
+
+  const csv = buildSellerHubDraftCsv({
+    categoryId: normalizedCategoryId,
+    title,
+    sku,
+    upc,
+    price,
+    quantity,
+    photoUrls,
+    condition,
+    description,
+    format,
+  });
+
+  const fileName = `ebay-draft-${taskId}.csv`;
+  const form = new FormData();
+  form.append("file", new Blob([csv], { type: "text/csv" }), fileName);
+
+  const uploadResponse = await fetch(
+    `${config.apiBaseUrl}/sell/feed/v1/task/${encodeURIComponent(taskId)}/upload_file`,
+    {
+      method: "POST",
+      headers: commonHeaders,
+      body: form,
+    },
+  );
+  const uploadText = await uploadResponse.text();
+  if (!uploadResponse.ok) {
+    throw new Error(`eBay Feed uploadFile failed (${uploadResponse.status}): ${uploadText || "no response body"}`);
+  }
+
+  return {
+    taskId,
+    status: "UPLOADED",
+    marketplaceId,
+    categoryId: normalizedCategoryId,
+    title: title || null,
+    note: "An unpublished Seller Hub draft feed was submitted. Check task status before assuming the draft exists.",
+  };
+}
+
+export async function ebayGetFeedTask(config, taskId, {
+  marketplaceId = "EBAY_GB",
+} = {}) {
+  return ebayGet(
+    config,
+    `/sell/feed/v1/task/${encodeURIComponent(taskId)}`,
+    {},
+    { headers: { "x-ebay-c-marketplace-id": marketplaceId } },
+  );
+}
+
+function buildSellerHubDraftCsv({
+  categoryId,
+  title,
+  sku,
+  upc,
+  price,
+  quantity,
+  photoUrls = [],
+  condition,
+  description,
+  format,
+}) {
+  const headers = [
+    "Action",
+    "Custom label (SKU)",
+    "Category ID",
+    "Title",
+    "UPC",
+    "Price",
+    "Quantity",
+    "Item photo URL",
+    "Condition ID",
+    "Description",
+    "Format",
+  ];
+  const row = [
+    "Draft",
+    sku,
+    categoryId,
+    title,
+    upc,
+    price,
+    quantity,
+    photoUrls.filter(Boolean).join("|"),
+    condition,
+    description,
+    format,
+  ];
+  return `${headers.map(csvCell).join(",")}\r\n${row.map(csvCell).join(",")}\r\n`;
+}
+
+function csvCell(value) {
+  if (value === undefined || value === null) return '""';
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
 export async function ebayGet(config, path, query = {}, options = {}) {
   return ebayRequest(config, "GET", path, { query, ...options });
 }
@@ -274,6 +431,8 @@ export function publicConnectionStatus(config, tokens) {
     expiresAt: tokens?.expires_at || null,
     hasRefreshToken: Boolean(tokens?.refresh_token),
     scopes: config.scopes,
+    draftToolsEnabled: Boolean(config.enableDraftTools),
+    writeToolsEnabled: Boolean(config.enableWriteTools),
   };
 }
 
