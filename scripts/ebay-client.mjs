@@ -6,7 +6,6 @@ const DEFAULT_SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
   "https://api.ebay.com/oauth/api_scope/sell.account.readonly",
   "https://api.ebay.com/oauth/api_scope/commerce.identity.readonly",
-  "https://api.ebay.com/oauth/api_scope/commerce.message.readonly",
 ];
 
 export function loadConfig() {
