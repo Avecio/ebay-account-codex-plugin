@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 const DEFAULT_SCOPES = [
+  "https://api.ebay.com/oauth/api_scope",
   "https://api.ebay.com/oauth/api_scope/sell.inventory.readonly",
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
   "https://api.ebay.com/oauth/api_scope/sell.account.readonly",
@@ -172,6 +173,7 @@ export async function ebayRequest(config, method, path, {
   const requestHeaders = {
     authorization: `Bearer ${accessToken}`,
     accept: "application/json",
+    "accept-language": "en-GB",
     ...headers,
   };
   if (body !== undefined) {
@@ -224,3 +226,5 @@ function splitScopes(value = "") {
 function expandEnvPath(value) {
   return value.replace(/%([^%]+)%/g, (_match, name) => process.env[name] || "");
 }
+
+
