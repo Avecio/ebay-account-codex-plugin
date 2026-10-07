@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 const DEFAULT_SCOPES = [
   "https://api.ebay.com/oauth/api_scope",
@@ -308,6 +309,46 @@ export async function ebayCreateSellerHubDraft(config, {
     categoryId: normalizedCategoryId,
     title: title || null,
     note: "An unpublished Seller Hub draft feed was submitted. Check task status before assuming the draft exists.",
+  };
+}
+
+export async function ebayGetFeedResult(config, taskId, {
+  marketplaceId = "EBAY_GB",
+} = {}) {
+  const accessToken = await getValidAccessToken(config);
+  const url = new URL(
+    `/sell/feed/v1/task/${encodeURIComponent(taskId)}/download_result_file`,
+    config.apiBaseUrl,
+  );
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      accept: "*/*",
+      "x-ebay-c-marketplace-id": marketplaceId,
+    },
+  });
+
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (!response.ok) {
+    const text = bytes.toString("utf8");
+    throw new Error(
+      `eBay Feed getResultFile failed (${response.status}): ${text || "no response body"}`,
+    );
+  }
+
+  let decoded = bytes;
+  if (bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    decoded = gunzipSync(bytes);
+  }
+
+  const text = decoded.toString("utf8");
+  return {
+    taskId,
+    contentType: response.headers.get("content-type") || null,
+    bytes: bytes.length,
+    resultText: text.slice(0, 100000),
+    truncated: text.length > 100000,
   };
 }
 
