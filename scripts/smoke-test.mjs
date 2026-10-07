@@ -85,6 +85,7 @@ try {
   assert.match(listTools.text, /ebay_connection_status/);
   assert.match(listTools.text, /ebay_get_account_profile/);
   assert.match(listTools.text, /ebay_search_inventory/);
+  assert.match(listTools.text, /ebay_get_active_listings/);
   assert.match(listTools.text, /ebay_get_inventory_item/);
   assert.match(listTools.text, /ebay_get_offers/);
   assert.match(listTools.text, /ebay_get_orders/);
