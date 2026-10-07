@@ -375,8 +375,18 @@ function buildSellerHubDraftCsv({
   description,
   format,
 }) {
+  // Mirror eBay UK's official Seller Hub "Create new drafts" CSV shape.
+  // The four #INFO rows and the site metadata embedded in the Action header
+  // are part of the downloaded template and are preserved deliberately.
+  const infoLines = [
+    "#INFO,Version=0.0.2,Template= eBay-draft-listings-template_GB,,,,,,,,",
+    "#INFO Action and Category ID are required fields. 1) Set Action to Draft 2) Please find the category ID for your listings here: https://pages.ebay.com/sellerinformation/news/categorychanges.html,,,,,,,,,,",
+    "\"#INFO After you've successfully uploaded your draft from the Seller Hub Reports tab, complete your drafts to active listings here: https://www.ebay.co.uk/sh/lst/drafts\",,,,,,,,,,",
+    "#INFO,,,,,,,,,,",
+  ];
+
   const headers = [
-    "Action",
+    "Action(SiteID=UK|Country=GB|Currency=GBP|Version=1193|CC=UTF-8)",
     "Custom label (SKU)",
     "Category ID",
     "Title",
@@ -401,7 +411,13 @@ function buildSellerHubDraftCsv({
     description,
     format,
   ];
-  return `${headers.map(csvCell).join(",")}\r\n${row.map(csvCell).join(",")}\r\n`;
+
+  return [
+    ...infoLines,
+    headers.join(","),
+    row.map(csvCell).join(","),
+    "",
+  ].join("\r\n");
 }
 
 function csvCell(value) {
