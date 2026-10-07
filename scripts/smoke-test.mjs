@@ -91,7 +91,8 @@ try {
   assert.match(listTools.text, /ebay_get_order/);
   assert.match(listTools.text, /ebay_get_payment_policies/);
   assert.match(listTools.text, /ebay_search_marketplace/);
-  assert.match(listTools.text, /ebay_list_message_conversations/);
+  assert.doesNotMatch(listTools.text, /ebay_list_message_conversations/);
+  assert.doesNotMatch(listTools.text, /ebay_get_message_conversation/);
   assert.doesNotMatch(listTools.text, /ebay_send_message/);
   assert.doesNotMatch(listTools.text, /ebay_publish_offer/);
 

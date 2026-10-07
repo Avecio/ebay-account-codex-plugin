@@ -465,6 +465,7 @@ function buildServer(config) {
     return toToolResult(result);
   });
 
+  if (config.scopes.includes("https://api.ebay.com/oauth/api_scope/commerce.message")) {
   server.registerTool("ebay_list_message_conversations", {
     title: "List eBay message conversations",
     description: "Use this when the user asks for buyer/seller message conversations.",
@@ -521,6 +522,7 @@ function buildServer(config) {
 
 }
 
+  }
     return server;
 }
 
