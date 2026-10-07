@@ -143,7 +143,7 @@ function buildServer(config) {
       title: "Create eBay Seller Hub draft",
       description: "Creates one unpublished Seller Hub draft through the FX_LISTING Draft action. This tool cannot publish, revise, end, relist, message, refund, or add tracking.",
       inputSchema: {
-        categoryId: z.string().regex(/^\\d+$/),
+        categoryId: z.string().regex(/^\d+$/),
         title: z.string().max(80).optional(),
         sku: z.string().max(100).optional(),
         upc: z.string().max(32).optional(),
