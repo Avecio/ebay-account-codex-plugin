@@ -11,6 +11,8 @@ import {
   ebayDelete,
   ebayGet,
   ebayGetActiveListings,
+  ebayGetCategoryAspects,
+  ebayGetCategoryConditionPolicies,
   ebayGetFeedTask,
   ebayGetFeedResult,
   ebayPost,
@@ -117,6 +119,42 @@ function buildServer(config) {
     return toToolResult(inventory);
   });
 
+  server.registerTool("ebay_get_category_conditions", {
+    title: "Get eBay category conditions",
+    description: "Gets the valid eBay condition IDs for a UK category so drafts use a supported structured condition.",
+    inputSchema: {
+      categoryId: z.string().regex(/^\d+$/),
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+  }, async ({ categoryId }) => {
+    const result = await ebayGetCategoryConditionPolicies(config, categoryId, {
+      marketplaceId: "EBAY_GB",
+    });
+    return toToolResult(result);
+  });
+
+  server.registerTool("ebay_get_category_aspects", {
+    title: "Get eBay category item specifics",
+    description: "Gets the required, recommended, and optional item specifics for a UK eBay category.",
+    inputSchema: {
+      categoryId: z.string().regex(/^\d+$/),
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      openWorldHint: false,
+    },
+  }, async ({ categoryId }) => {
+    const result = await ebayGetCategoryAspects(config, categoryId, {
+      marketplaceId: "EBAY_GB",
+    });
+    return toToolResult(result);
+  });
+
   server.registerTool("ebay_get_active_listings", {
     title: "Get active eBay listings",
     description: "Use this when the user asks for their current live eBay listings, including listings created manually in eBay or Seller Hub.",
@@ -151,7 +189,9 @@ function buildServer(config) {
         price: z.number().positive().optional(),
         quantity: z.number().int().positive().optional(),
         photoUrls: z.array(z.string().url()).max(24).optional(),
-        condition: z.enum(["NEW", "USED"]).optional(),
+        condition: z.string().optional(),
+        conditionId: z.union([z.string(), z.number()]).optional(),
+        itemSpecifics: z.record(z.string(), z.string()).optional(),
         description: z.string().optional(),
         format: z.enum(["Auction", "FixedPrice"]).optional(),
         confirm: z.boolean(),
@@ -171,6 +211,8 @@ function buildServer(config) {
       quantity,
       photoUrls,
       condition,
+      conditionId,
+      itemSpecifics,
       description,
       format,
       confirm,
@@ -186,6 +228,8 @@ function buildServer(config) {
         quantity,
         photoUrls,
         condition,
+        conditionId,
+        itemSpecifics,
         description,
         format,
         marketplaceId: "EBAY_GB",
