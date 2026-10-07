@@ -12,6 +12,7 @@ import {
   ebayGet,
   ebayGetActiveListings,
   ebayGetFeedTask,
+  ebayGetFeedResult,
   ebayPost,
   ebayPut,
   exchangeCodeForTokens,
@@ -189,6 +190,22 @@ function buildServer(config) {
         format,
         marketplaceId: "EBAY_GB",
       });
+      return toToolResult(result);
+    });
+
+    server.registerTool("ebay_get_draft_result", {
+      title: "Get eBay draft result errors",
+      description: "Downloads and reads the completed FX_LISTING draft task result file so validation errors can be diagnosed. Read-only.",
+      inputSchema: {
+        taskId: z.string(),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    }, async ({ taskId }) => {
+      const result = await ebayGetFeedResult(config, taskId, { marketplaceId: "EBAY_GB" });
       return toToolResult(result);
     });
 
