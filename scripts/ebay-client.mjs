@@ -417,7 +417,7 @@ function buildSellerHubDraftCsv({
     price,
     quantity,
     photoUrls.filter(Boolean).join("|"),
-    conditionId ?? condition,
+    sellerHubDraftCondition(conditionId, condition),
     description,
     format,
     ...specificEntries.map(([, value]) => String(value).trim()),
@@ -429,6 +429,20 @@ function buildSellerHubDraftCsv({
     row.map(csvCell).join(","),
     "",
   ].join("\r\n");
+}
+
+function sellerHubDraftCondition(conditionId, condition) {
+  const explicit = String(condition ?? "").trim().toUpperCase();
+  if (explicit === "NEW" || explicit === "USED") return explicit;
+
+  const id = String(conditionId ?? "").trim();
+  if (id === "1000") return "NEW";
+  if (id === "3000") return "USED";
+
+  // eBay's Create Drafts template only accepts NEW or USED in its
+  // "Condition ID" column. More specific condition states must be
+  // completed later in Seller Hub.
+  return "";
 }
 
 function csvCell(value) {
