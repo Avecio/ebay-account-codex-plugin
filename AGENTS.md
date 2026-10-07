@@ -150,3 +150,13 @@ Even if the user says a draft looks good, that is not approval to publish. Publi
 
 Never simulate or imply that a listing was published when it was only drafted.
 
+
+
+\## Category metadata before draft creation
+
+Before creating a real Seller Hub draft, use eBay's category metadata where available:
+
+- Query the category condition metadata and use a valid numeric Condition ID for the selected category.
+- Query the category aspect metadata and populate supported item specifics from confirmed evidence.
+- Prefer required and recommended aspects first.
+- Do not invent aspect values merely to fill fields.
