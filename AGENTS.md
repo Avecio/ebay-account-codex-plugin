@@ -235,3 +235,11 @@ When Scout context supplies the auction week, lot number, and item position, pop
 \## Pricing research standard
 
 Before choosing a buyer-facing price, prefer exact sold evidence for the exact model/part number and comparable condition. If exact sold evidence is unavailable, widen deliberately to near-exact models, dealer/history references, then active asks, clearly distinguishing each evidence type. Do not treat an active asking price as a sold comp.
+
+
+\## Transient failure handling
+
+- Automatically retry transient network failures only for operations where repetition cannot create a second Seller Hub draft: staged photo upload and read-only feed status/result calls.
+- Use bounded exponential backoff for transient failures such as fetch errors, timeouts, connection resets, HTTP 429, and temporary 5xx responses.
+- Never blindly retry the state-changing Seller Hub draft creation request after an ambiguous network failure. If eBay may have accepted the request but the response was lost, stop and investigate rather than risk a duplicate draft.
+- Duplicate protection remains the final guard against reprocessing a job that already has a submission receipt.
