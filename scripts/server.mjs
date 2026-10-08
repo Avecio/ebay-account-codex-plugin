@@ -182,21 +182,24 @@ function buildServer(config) {
   if (config.enableDraftTools && config.scopes.includes(draftScope)) {
     server.registerTool("ebay_list_staged_photos", {
       title: "List staged eBay photos",
-      description: "Lists image files from the connector's dedicated local staging folder. Read-only and cannot access arbitrary local paths.",
-      inputSchema: {},
+      description: "Lists photo groups or image files from one selected item folder inside the connector's dedicated staging folder. Read-only and cannot access arbitrary local paths.",
+      inputSchema: {
+        group: z.string().min(1).max(120).optional(),
+      },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
         openWorldHint: false,
       },
-    }, async () => {
-      return toToolResult(await ebayListStagedPhotos(config));
+    }, async ({ group }) => {
+      return toToolResult(await ebayListStagedPhotos(config, { group }));
     });
 
     server.registerTool("ebay_upload_staged_photo", {
       title: "Upload staged photo to eBay",
-      description: "Uploads one image from the dedicated local staging folder to eBay Picture Services through the current Media API. It does not create or publish a listing.",
+      description: "Uploads one image from a selected item folder inside the dedicated staging folder to eBay Picture Services through the current Media API. It does not create or publish a listing.",
       inputSchema: {
+        group: z.string().min(1).max(120).optional(),
         fileName: z.string().min(1),
         confirm: z.boolean(),
         confirmationText: z.string(),
@@ -206,9 +209,9 @@ function buildServer(config) {
         destructiveHint: false,
         openWorldHint: true,
       },
-    }, async ({ fileName, confirm, confirmationText }) => {
+    }, async ({ group, fileName, confirm, confirmationText }) => {
       requireConfirmation({ confirm, confirmationText }, "upload ebay photo");
-      return toToolResult(await ebayUploadStagedPhoto(config, fileName));
+      return toToolResult(await ebayUploadStagedPhoto(config, fileName, { group }));
     });
 
     server.registerTool("ebay_create_draft", {
