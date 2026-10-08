@@ -182,3 +182,10 @@ For this UK private-seller account, draft pricing is shopper-facing.
 - Upload staged photos to eBay through the Media API before creating a draft.
 - Use the returned eBay-hosted image URLs in `photoUrls`.
 - Uploading a photo is permitted only as part of the explicit draft workflow; it does not authorize publishing.
+
+
+\## Condition description
+
+- For used items, populate the dedicated `conditionDescription` field with concise item-specific wear, defects, missing parts, and testing status.
+- Do not leave a used item's condition description as merely "Used" when photos or evidence support a more useful factual description.
+- Keep the main listing description focused on identification, specifications, included items, and buyer-relevant notes rather than duplicating the entire condition description.
