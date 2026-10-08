@@ -160,3 +160,14 @@ Before creating a real Seller Hub draft, use eBay's category metadata where avai
 - Query the category aspect metadata and populate supported item specifics from confirmed evidence.
 - Prefer required and recommended aspects first.
 - Do not invent aspect values merely to fill fields.
+
+
+\## Buyer-facing pricing
+
+For this UK private-seller account, draft pricing is shopper-facing.
+
+- Treat the requested listing price as the price the buyer should see on eBay, including eBay Buyer Protection.
+- Pass that amount as `buyerPrice` to the draft tool.
+- Do not manually add Buyer Protection on top.
+- The connector back-calculates the underlying seller item price using the current UK private-seller Buyer Protection tiers.
+- If the account becomes a business seller or eBay changes the fee schedule, update this calculation before creating further drafts.
