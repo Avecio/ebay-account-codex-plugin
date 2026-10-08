@@ -256,7 +256,7 @@ export async function ebayListStagedPhotos(config, { group } = {}) {
     const info = await stat(fullPath);
 
     if (info.isDirectory() && !group) {
-      groups.push(name);
+      if (!name.startsWith("_")) groups.push(name);
       continue;
     }
 
@@ -270,7 +270,7 @@ export async function ebayListStagedPhotos(config, { group } = {}) {
     });
   }
 
-  files.sort((a, b) => a.fileName.localeCompare(b.fileName));
+  files.sort((a, b) => a.fileName.localeCompare(b.fileName, undefined, { numeric: true, sensitivity: "base" }));
   groups.sort((a, b) => a.localeCompare(b));
 
   return {
