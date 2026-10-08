@@ -176,7 +176,9 @@ For this UK private-seller account, draft pricing is shopper-facing.
 \## Photo handling
 
 - Listing photos may be staged only in the dedicated connector photo folder.
-- Never read or upload arbitrary local file paths.
+- Use one subfolder per item/listing so photos from different items cannot be mixed.
+- When item subfolders exist, select the intended `group` explicitly before listing or uploading photos.
+- Never read or upload arbitrary local file paths or traverse outside the selected group.
 - Upload staged photos to eBay through the Media API before creating a draft.
 - Use the returned eBay-hosted image URLs in `photoUrls`.
 - Uploading a photo is permitted only as part of the explicit draft workflow; it does not authorize publishing.
