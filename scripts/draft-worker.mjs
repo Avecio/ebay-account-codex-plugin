@@ -182,7 +182,9 @@ async function waitForTask(config, taskId, timeoutMs = 120000) {
   const started = Date.now();
   let latest = null;
   while (Date.now() - started < timeoutMs) {
-    latest = await safeRetry("feed task status", () =>\n      ebayGetFeedTask(config, taskId, { marketplaceId: "EBAY_GB" }),\n    );
+    latest = await safeRetry("feed task status", () =>
+      ebayGetFeedTask(config, taskId, { marketplaceId: "EBAY_GB" }),
+    );
     const status = String(latest?.status || "").toUpperCase();
     if (status === "COMPLETED" || status === "COMPLETED_WITH_ERROR" || status === "FAILED") {
       return latest;
@@ -237,7 +239,9 @@ async function processJob(config, dirs, processingPath, originalName) {
 
   const uploads = [];
   for (const file of staged.files) {
-    const uploaded = await safeRetry(`photo upload ${file.fileName}`, () =>\n      ebayUploadStagedPhoto(config, file.fileName, { group: job.photoGroup }),\n    );
+    const uploaded = await safeRetry(`photo upload ${file.fileName}`, () =>
+      ebayUploadStagedPhoto(config, file.fileName, { group: job.photoGroup }),
+    );
     if (!uploaded.imageUrl) {
       throw new Error(`eBay did not return an image URL for ${file.fileName}.`);
     }
@@ -270,7 +274,8 @@ async function processJob(config, dirs, processingPath, originalName) {
   let draftUrl = null;
   if (taskStatus === "COMPLETED" || taskStatus === "COMPLETED_WITH_ERROR") {
     try {
-      const feedResult = await safeRetry("feed result download", () =>\n        ebayGetFeedResult(config, draft.taskId, { marketplaceId: "EBAY_GB" }),\n      );
+      const feedResult = await safeRetry("feed result download", () =>
+        ebayGetFeedResult(config, draft.taskId, { marketplaceId: "EBAY_GB" }),\n      );
       ({ draftId, draftUrl } = draftLinkFromResult(feedResult.resultText));
     } catch {
       // A draft may still be valid even if the result file is briefly unavailable.
@@ -408,7 +413,8 @@ export async function startDraftJobWorker(config) {
     mode: "UNPUBLISHED_DRAFT_ONLY",
     jobDir: config.draftJobDir,
     duplicateProtection: true,
-    photoArchive: join(config.photoStagingDir, "_completed"),\n    transientRetries: "SAFE_ONLY",
+    photoArchive: join(config.photoStagingDir, "_completed"),
+    transientRetries: "SAFE_ONLY",
   }));
 
   for (;;) {
