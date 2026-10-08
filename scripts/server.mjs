@@ -4,6 +4,7 @@ import * as z from "zod/v4";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { startDraftJobWorker } from "./draft-worker.mjs";
 
 import {
   buildAuthorizationUrl,
@@ -738,6 +739,15 @@ function marketplaceAccountDeletionChallenge(config, challengeCode) {
 
 async function main() {
   const config = loadConfig();
+  if (config.enableDraftWorker) {
+    startDraftJobWorker(config).catch((error) => {
+      console.error(JSON.stringify({
+        ok: false,
+        component: "draft-worker",
+        error: error?.message || String(error),
+      }));
+    });
+  }
   const app = express();
   app.use(express.json({ limit: "2mb" }));
 
