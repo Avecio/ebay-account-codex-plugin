@@ -17,6 +17,14 @@ export function loadConfig() {
     process.env.EBAY_TOKEN_STORE_PATH ||
       "%LOCALAPPDATA%\\Codex\\eBayAccountPlugin\\tokens.json",
   );
+  const photoStagingDir = expandEnvPath(
+    process.env.EBAY_PHOTO_STAGING_DIR ||
+      "%LOCALAPPDATA%\\Codex\\eBayAccountPlugin\\listing-photos",
+  );
+  const draftJobDir = expandEnvPath(
+    process.env.EBAY_DRAFT_JOB_DIR ||
+      join(dirname(photoStagingDir), "Peacock Scout eBay Jobs"),
+  );
 
   return {
     env: isProduction ? "production" : "sandbox",
@@ -28,14 +36,13 @@ export function loadConfig() {
     mcpApiKey: process.env.EBAY_MCP_API_KEY || "",
     enableWriteTools: (process.env.EBAY_ENABLE_WRITE_TOOLS || "").toLowerCase() === "true",
     enableDraftTools: (process.env.EBAY_ENABLE_DRAFT_TOOLS || "").toLowerCase() === "true",
+    enableDraftWorker: (process.env.EBAY_ENABLE_DRAFT_WORKER || "").toLowerCase() === "true",
     scopes: splitScopes(process.env.EBAY_SCOPES).length
       ? splitScopes(process.env.EBAY_SCOPES)
       : DEFAULT_SCOPES,
     tokenStorePath,
-    photoStagingDir: expandEnvPath(
-      process.env.EBAY_PHOTO_STAGING_DIR ||
-        "%LOCALAPPDATA%\\Codex\\eBayAccountPlugin\\listing-photos",
-    ),
+    photoStagingDir,
+    draftJobDir,
     marketplaceAccountDeletionEndpoint: process.env.EBAY_MARKETPLACE_ACCOUNT_DELETION_ENDPOINT || "",
     marketplaceAccountDeletionVerificationToken:
       process.env.EBAY_MARKETPLACE_ACCOUNT_DELETION_VERIFICATION_TOKEN || "",
