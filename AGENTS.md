@@ -199,3 +199,39 @@ For this UK private-seller account, draft pricing is shopper-facing.
 - Jobs may reference only one safe staged photo group. Arbitrary local paths and externally supplied photo URLs are rejected.
 - The worker uploads that group's photos to eBay Media, creates one unpublished Seller Hub draft, records a result, and never publishes.
 - A user's explicit instruction such as "list this" may authorize creation of the unpublished draft job; it never authorizes publishing.
+
+
+\## Listing style standard
+
+Use a clear technical listing structure rather than a thin paragraph or generic marketing copy.
+
+1. **Item Description** — identify the exact item, maker/model, what it is used for, and the strongest confirmed technical identifiers.
+2. **Specifications / Fitment** — concise bullet points for confirmed model, dimensions, standards, interface, application, compatibility, or fitment. Never turn an inference into confirmed fitment.
+3. **Package Contents** — state exactly what is included and call out important missing accessories.
+4. **Condition Notes** — factual cosmetic condition, defects, corrosion/wear, testing performed, and anything not tested.
+
+Avoid unsupported filler such as "premium", "heavy-duty", "fully functional", or "precision" unless the evidence actually supports it. Technical detail is preferred over marketing language.
+
+Titles should use the available 80 characters efficiently: brand + exact model/part number + key search term/type + major specification/fitment terms. Put the highest-value exact-match terms first and avoid keyword stuffing.
+
+\## SKU convention
+
+When Scout context supplies the auction week, lot number, and item position, populate eBay Custom Label / SKU automatically.
+
+- Standard item: `W4-4616-07` = Week 4, Lot 4616, item 07.
+- Boxed subgroup item: `W4-4616-A7` = Week 4, Lot 4616, Box A, item 7.
+- Preserve the user's week/lot/item numbering exactly.
+- If any required SKU component is unknown, ask rather than inventing it.
+- SKU is optional for items outside this stock system.
+
+\## Photo order, duplicate protection, and archive
+
+- Preserve the user's photo order by naming staged files `01`, `02`, `03`, etc.; the first photo should be the strongest overall/main listing image where practical.
+- The automatic worker blocks a second draft when the same photo group, SKU, or job ID has already produced/submitted a draft.
+- A receipt is written immediately after eBay accepts draft creation so a crash or retry cannot silently create another draft.
+- After a successful draft, move the item's photo folder under the staging folder's `_completed` archive instead of deleting it.
+- Completed job results should include the Seller Hub draft ID/link when eBay returns it.
+
+\## Pricing research standard
+
+Before choosing a buyer-facing price, prefer exact sold evidence for the exact model/part number and comparable condition. If exact sold evidence is unavailable, widen deliberately to near-exact models, dealer/history references, then active asks, clearly distinguishing each evidence type. Do not treat an active asking price as a sold comp.
