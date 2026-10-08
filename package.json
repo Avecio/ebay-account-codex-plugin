@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node --env-file=.env scripts/server.mjs",
     "smoke": "node scripts/smoke-test.mjs",
-    "check": "node --check scripts/server.mjs && node --check scripts/ebay-client.mjs && node --check scripts/smoke-test.mjs"
+    "check": "node --check scripts/server.mjs && node --check scripts/ebay-client.mjs && node --check scripts/draft-worker.mjs && node --check scripts/smoke-test.mjs"
   },
   "keywords": [
     "codex",
