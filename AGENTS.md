@@ -171,3 +171,12 @@ For this UK private-seller account, draft pricing is shopper-facing.
 - Do not manually add Buyer Protection on top.
 - The connector back-calculates the underlying seller item price using the current UK private-seller Buyer Protection tiers.
 - If the account becomes a business seller or eBay changes the fee schedule, update this calculation before creating further drafts.
+
+
+\## Photo handling
+
+- Listing photos may be staged only in the dedicated connector photo folder.
+- Never read or upload arbitrary local file paths.
+- Upload staged photos to eBay through the Media API before creating a draft.
+- Use the returned eBay-hosted image URLs in `photoUrls`.
+- Uploading a photo is permitted only as part of the explicit draft workflow; it does not authorize publishing.
