@@ -189,3 +189,13 @@ For this UK private-seller account, draft pricing is shopper-facing.
 - For used items, populate the dedicated `conditionDescription` field with concise item-specific wear, defects, missing parts, and testing status.
 - Do not leave a used item's condition description as merely "Used" when photos or evidence support a more useful factual description.
 - Keep the main listing description focused on identification, specifications, included items, and buyer-relevant notes rather than duplicating the entire condition description.
+
+
+\## Automatic draft queue
+
+- The optional Drive-synced draft worker is unpublished-draft-only and must remain separately gated by `EBAY_ENABLE_DRAFT_WORKER=true`.
+- It refuses to start if general write tools are enabled.
+- A queued job must explicitly use `action: "create_draft"`, `confirm: true`, and `confirmationText: "create ebay draft"`.
+- Jobs may reference only one safe staged photo group. Arbitrary local paths and externally supplied photo URLs are rejected.
+- The worker uploads that group's photos to eBay Media, creates one unpublished Seller Hub draft, records a result, and never publishes.
+- A user's explicit instruction such as "list this" may authorize creation of the unpublished draft job; it never authorizes publishing.
