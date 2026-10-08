@@ -13,6 +13,44 @@ import {
 
 const CREATE_CONFIRMATION = "create ebay draft";
 
+function transientError(error) {
+  const message = String(error?.message || error || "");
+  return (
+    /fetch failed/i.test(message) ||
+    /ECONNRESET|ETIMEDOUT|ENETUNREACH|EAI_AGAIN|UND_ERR|socket hang up/i.test(message) ||
+    /\((429|500|502|503|504)\b/.test(message)
+  );
+}
+
+async function safeRetry(label, operation, {
+  attempts = 4,
+  baseDelayMs = 1500,
+} = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!transientError(error) || attempt === attempts) throw error;
+
+      const delayMs = baseDelayMs * (2 ** (attempt - 1));
+      console.warn(JSON.stringify({
+        ok: false,
+        component: "draft-worker",
+        event: "transient-retry",
+        label,
+        attempt,
+        attempts,
+        delayMs,
+        error: error?.message || String(error),
+      }));
+      await sleep(delayMs);
+    }
+  }
+  throw lastError;
+}
+
 function plainName(value, field) {
   const raw = String(value ?? "").trim();
   if (
@@ -144,7 +182,7 @@ async function waitForTask(config, taskId, timeoutMs = 120000) {
   const started = Date.now();
   let latest = null;
   while (Date.now() - started < timeoutMs) {
-    latest = await ebayGetFeedTask(config, taskId, { marketplaceId: "EBAY_GB" });
+    latest = await safeRetry("feed task status", () =>\n      ebayGetFeedTask(config, taskId, { marketplaceId: "EBAY_GB" }),\n    );
     const status = String(latest?.status || "").toUpperCase();
     if (status === "COMPLETED" || status === "COMPLETED_WITH_ERROR" || status === "FAILED") {
       return latest;
@@ -199,13 +237,17 @@ async function processJob(config, dirs, processingPath, originalName) {
 
   const uploads = [];
   for (const file of staged.files) {
-    const uploaded = await ebayUploadStagedPhoto(config, file.fileName, { group: job.photoGroup });
+    const uploaded = await safeRetry(`photo upload ${file.fileName}`, () =>\n      ebayUploadStagedPhoto(config, file.fileName, { group: job.photoGroup }),\n    );
     if (!uploaded.imageUrl) {
       throw new Error(`eBay did not return an image URL for ${file.fileName}.`);
     }
     uploads.push(uploaded);
   }
 
+  // Do not blindly retry draft creation itself. A lost network response after
+  // eBay accepts a state-changing request is ambiguous and retrying could make
+  // a second draft. Safe automatic retries are limited to media uploads and
+  // read-only status/result calls.
   const draft = await ebayCreateSellerHubDraft(config, {
     ...job.draft,
     photoUrls: uploads.map((entry) => entry.imageUrl),
@@ -228,7 +270,7 @@ async function processJob(config, dirs, processingPath, originalName) {
   let draftUrl = null;
   if (taskStatus === "COMPLETED" || taskStatus === "COMPLETED_WITH_ERROR") {
     try {
-      const feedResult = await ebayGetFeedResult(config, draft.taskId, { marketplaceId: "EBAY_GB" });
+      const feedResult = await safeRetry("feed result download", () =>\n        ebayGetFeedResult(config, draft.taskId, { marketplaceId: "EBAY_GB" }),\n      );
       ({ draftId, draftUrl } = draftLinkFromResult(feedResult.resultText));
     } catch {
       // A draft may still be valid even if the result file is briefly unavailable.
@@ -366,7 +408,7 @@ export async function startDraftJobWorker(config) {
     mode: "UNPUBLISHED_DRAFT_ONLY",
     jobDir: config.draftJobDir,
     duplicateProtection: true,
-    photoArchive: join(config.photoStagingDir, "_completed"),
+    photoArchive: join(config.photoStagingDir, "_completed"),\n    transientRetries: "SAFE_ONLY",
   }));
 
   for (;;) {
