@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, extname, join } from "node:path";
 import { gunzipSync } from "node:zlib";
 
 const DEFAULT_SCOPES = [
@@ -32,6 +32,10 @@ export function loadConfig() {
       ? splitScopes(process.env.EBAY_SCOPES)
       : DEFAULT_SCOPES,
     tokenStorePath,
+    photoStagingDir: expandEnvPath(
+      process.env.EBAY_PHOTO_STAGING_DIR ||
+        "%LOCALAPPDATA%\\Codex\\eBayAccountPlugin\\listing-photos",
+    ),
     marketplaceAccountDeletionEndpoint: process.env.EBAY_MARKETPLACE_ACCOUNT_DELETION_ENDPOINT || "",
     marketplaceAccountDeletionVerificationToken:
       process.env.EBAY_MARKETPLACE_ACCOUNT_DELETION_VERIFICATION_TOKEN || "",
@@ -210,6 +214,125 @@ export async function ebayGetActiveListings(config, {
     pageNumber,
     entriesPerPage,
     items,
+  };
+}
+
+export async function ebayListStagedPhotos(config) {
+  await mkdir(config.photoStagingDir, { recursive: true });
+  const names = await readdir(config.photoStagingDir);
+  const supported = new Set([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".heic", ".webp"]);
+  const files = [];
+  for (const name of names) {
+    const extension = extname(name).toLowerCase();
+    if (!supported.has(extension)) continue;
+    const info = await stat(join(config.photoStagingDir, name));
+    if (!info.isFile()) continue;
+    files.push({
+      fileName: name,
+      bytes: info.size,
+      modifiedAt: info.mtime.toISOString(),
+    });
+  }
+  files.sort((a, b) => a.fileName.localeCompare(b.fileName));
+  return {
+    stagingDir: config.photoStagingDir,
+    count: files.length,
+    files,
+  };
+}
+
+export async function ebayUploadStagedPhoto(config, fileName) {
+  const safeName = basename(String(fileName ?? ""));
+  if (!safeName || safeName !== String(fileName ?? "")) {
+    throw new Error("fileName must be a plain file name from the configured photo staging folder.");
+  }
+
+  const extension = extname(safeName).toLowerCase();
+  const mimeTypes = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".bmp": "image/bmp",
+    ".tif": "image/tiff",
+    ".tiff": "image/tiff",
+    ".avif": "image/avif",
+    ".heic": "image/heic",
+    ".webp": "image/webp",
+  };
+  const mimeType = mimeTypes[extension];
+  if (!mimeType) {
+    throw new Error("Unsupported image type. Use JPG, JPEG, PNG, GIF, BMP, TIFF, AVIF, HEIC, or WEBP.");
+  }
+
+  await mkdir(config.photoStagingDir, { recursive: true });
+  const filePath = join(config.photoStagingDir, safeName);
+  const bytes = await readFile(filePath);
+  const accessToken = await getValidAccessToken(config);
+  const mediaBaseUrl = config.env === "production"
+    ? "https://apim.ebay.com"
+    : "https://apim.sandbox.ebay.com";
+
+  const form = new FormData();
+  form.append("image", new Blob([bytes], { type: mimeType }), safeName);
+
+  const response = await fetch(
+    `${mediaBaseUrl}/commerce/media/v1_beta/image/create_image_from_file`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        accept: "application/json",
+      },
+      body: form,
+    },
+  );
+
+  const responseText = await response.text();
+  let payload = {};
+  if (responseText) {
+    try {
+      payload = JSON.parse(responseText);
+    } catch {
+      payload = { raw: responseText };
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `eBay Media createImageFromFile failed (${response.status}): ${JSON.stringify(payload)}`,
+    );
+  }
+
+  const location = response.headers.get("location") || "";
+  const imageId = location.split("/").filter(Boolean).at(-1) || payload.imageId || null;
+  let details = payload;
+
+  if (!details.imageUrl && imageId) {
+    const detailResponse = await fetch(
+      `${mediaBaseUrl}/commerce/media/v1_beta/image/${encodeURIComponent(imageId)}`,
+      {
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          accept: "application/json",
+        },
+      },
+    );
+    const detailText = await detailResponse.text();
+    if (detailResponse.ok && detailText) {
+      try {
+        details = JSON.parse(detailText);
+      } catch {
+      }
+    }
+  }
+
+  return {
+    fileName: safeName,
+    imageId,
+    imageUrl: details.imageUrl || null,
+    expirationDate: details.expirationDate || null,
+    status: "UPLOADED_TO_EBAY_MEDIA",
   };
 }
 
