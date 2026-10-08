@@ -4,6 +4,8 @@
 
 This repository connects to an eBay account through a hardened MCP connector.
 
+For item identification, research, category, title, item specifics, pricing, description, shipping, and pre-draft decision standards, follow `LISTING_BRAIN.md` as the detailed source of truth.
+
 
 
 \## Safety mode
