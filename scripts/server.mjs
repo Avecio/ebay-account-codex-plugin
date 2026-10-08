@@ -15,6 +15,8 @@ import {
   ebayGetCategoryConditionPolicies,
   ebayGetFeedTask,
   ebayGetFeedResult,
+  ebayListStagedPhotos,
+  ebayUploadStagedPhoto,
   ebayPost,
   ebayPut,
   exchangeCodeForTokens,
@@ -178,6 +180,37 @@ function buildServer(config) {
 
   const draftScope = "https://api.ebay.com/oauth/api_scope/sell.inventory";
   if (config.enableDraftTools && config.scopes.includes(draftScope)) {
+    server.registerTool("ebay_list_staged_photos", {
+      title: "List staged eBay photos",
+      description: "Lists image files from the connector's dedicated local staging folder. Read-only and cannot access arbitrary local paths.",
+      inputSchema: {},
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    }, async () => {
+      return toToolResult(await ebayListStagedPhotos(config));
+    });
+
+    server.registerTool("ebay_upload_staged_photo", {
+      title: "Upload staged photo to eBay",
+      description: "Uploads one image from the dedicated local staging folder to eBay Picture Services through the current Media API. It does not create or publish a listing.",
+      inputSchema: {
+        fileName: z.string().min(1),
+        confirm: z.boolean(),
+        confirmationText: z.string(),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    }, async ({ fileName, confirm, confirmationText }) => {
+      requireConfirmation({ confirm, confirmationText }, "upload ebay photo");
+      return toToolResult(await ebayUploadStagedPhoto(config, fileName));
+    });
+
     server.registerTool("ebay_create_draft", {
       title: "Create eBay Seller Hub draft",
       description: "Creates one unpublished Seller Hub draft. buyerPrice means the total item price the UK buyer should see including eBay Buyer Protection; the connector back-calculates the private seller listing price. This tool cannot publish, revise, end, relist, message, refund, or add tracking.",
