@@ -275,7 +275,8 @@ async function processJob(config, dirs, processingPath, originalName) {
   if (taskStatus === "COMPLETED" || taskStatus === "COMPLETED_WITH_ERROR") {
     try {
       const feedResult = await safeRetry("feed result download", () =>
-        ebayGetFeedResult(config, draft.taskId, { marketplaceId: "EBAY_GB" }),\n      );
+        ebayGetFeedResult(config, draft.taskId, { marketplaceId: "EBAY_GB" }),
+      );
       ({ draftId, draftUrl } = draftLinkFromResult(feedResult.resultText));
     } catch {
       // A draft may still be valid even if the result file is briefly unavailable.
