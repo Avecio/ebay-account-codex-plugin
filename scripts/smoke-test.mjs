@@ -101,6 +101,8 @@ try {
   assert.doesNotMatch(listTools.text, /ebay_publish_offer/);
   assert.doesNotMatch(listTools.text, /ebay_create_draft/);
   assert.doesNotMatch(listTools.text, /ebay_get_draft_task/);
+  assert.doesNotMatch(listTools.text, /ebay_list_staged_photos/);
+  assert.doesNotMatch(listTools.text, /ebay_upload_staged_photo/);
 
   const status = await postJson(endpoint, {
     jsonrpc: "2.0",
