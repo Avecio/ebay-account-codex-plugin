@@ -213,12 +213,55 @@ export async function ebayGetActiveListings(config, {
   };
 }
 
+function ebayPrivateSellerBuyerProtectionFee(itemPrice) {
+  const price = Number(itemPrice);
+  if (!Number.isFinite(price) || price < 0) {
+    throw new Error("itemPrice must be a non-negative number.");
+  }
+
+  let fee = 0.10;
+  fee += Math.min(price, 20) * 0.07;
+  if (price > 20) fee += Math.min(price - 20, 280) * 0.04;
+  if (price > 300) fee += Math.min(price - 300, 3700) * 0.02;
+  return Math.round((fee + Number.EPSILON) * 100) / 100;
+}
+
+function sellerPriceForBuyerFacingTotal(buyerPrice) {
+  const targetPence = Math.round(Number(buyerPrice) * 100);
+  if (!Number.isFinite(targetPence) || targetPence <= 0) {
+    throw new Error("buyerPrice must be a positive GBP amount.");
+  }
+
+  // Work in pennies so the amount the shopper sees is exact whenever eBay's
+  // rounded Buyer Protection fee permits it.
+  let best = null;
+  const maxSellerPence = targetPence;
+  for (let sellerPence = Math.max(1, targetPence - 10000); sellerPence <= maxSellerPence; sellerPence += 1) {
+    const sellerPrice = sellerPence / 100;
+    const feePence = Math.round(ebayPrivateSellerBuyerProtectionFee(sellerPrice) * 100);
+    const visiblePence = sellerPence + feePence;
+    const distance = Math.abs(visiblePence - targetPence);
+    if (!best || distance < best.distance || (distance === best.distance && sellerPence > best.sellerPence)) {
+      best = { sellerPence, feePence, visiblePence, distance };
+      if (distance === 0) break;
+    }
+  }
+
+  if (!best) throw new Error("Unable to calculate seller price.");
+  return {
+    buyerPrice: (targetPence / 100).toFixed(2),
+    sellerItemPrice: (best.sellerPence / 100).toFixed(2),
+    estimatedBuyerProtectionFee: (best.feePence / 100).toFixed(2),
+    estimatedBuyerVisiblePrice: (best.visiblePence / 100).toFixed(2),
+  };
+}
+
 export async function ebayCreateSellerHubDraft(config, {
   categoryId,
   title,
   sku,
   upc,
-  price,
+  buyerPrice,
   quantity,
   photoUrls = [],
   condition,
@@ -274,12 +317,14 @@ export async function ebayCreateSellerHubDraft(config, {
     throw new Error("eBay Feed createTask succeeded but no task ID was returned.");
   }
 
+  const pricing = sellerPriceForBuyerFacingTotal(buyerPrice);
+
   const csv = buildSellerHubDraftCsv({
     categoryId: normalizedCategoryId,
     title,
     sku,
     upc,
-    price,
+    price: pricing.sellerItemPrice,
     quantity,
     photoUrls,
     condition,
@@ -312,7 +357,8 @@ export async function ebayCreateSellerHubDraft(config, {
     marketplaceId,
     categoryId: normalizedCategoryId,
     title: title || null,
-    note: "An unpublished Seller Hub draft feed was submitted. Check task status before assuming the draft exists.",
+    pricing,
+    note: "An unpublished Seller Hub draft feed was submitted. buyerPrice is the intended shopper-visible item price; the CSV uses the back-calculated private-seller item price before eBay Buyer Protection.",
   };
 }
 
