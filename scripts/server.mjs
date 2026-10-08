@@ -180,13 +180,13 @@ function buildServer(config) {
   if (config.enableDraftTools && config.scopes.includes(draftScope)) {
     server.registerTool("ebay_create_draft", {
       title: "Create eBay Seller Hub draft",
-      description: "Creates one unpublished Seller Hub draft through the FX_LISTING Draft action. This tool cannot publish, revise, end, relist, message, refund, or add tracking.",
+      description: "Creates one unpublished Seller Hub draft. buyerPrice means the total item price the UK buyer should see including eBay Buyer Protection; the connector back-calculates the private seller listing price. This tool cannot publish, revise, end, relist, message, refund, or add tracking.",
       inputSchema: {
         categoryId: z.string().regex(/^\d+$/),
         title: z.string().max(80).optional(),
         sku: z.string().max(100).optional(),
         upc: z.string().max(32).optional(),
-        price: z.number().positive().optional(),
+        buyerPrice: z.number().positive().optional(),
         quantity: z.number().int().positive().optional(),
         photoUrls: z.array(z.string().url()).max(24).optional(),
         condition: z.string().optional(),
@@ -207,7 +207,7 @@ function buildServer(config) {
       title,
       sku,
       upc,
-      price,
+      buyerPrice,
       quantity,
       photoUrls,
       condition,
@@ -224,7 +224,7 @@ function buildServer(config) {
         title,
         sku,
         upc,
-        price,
+        buyerPrice,
         quantity,
         photoUrls,
         condition,
