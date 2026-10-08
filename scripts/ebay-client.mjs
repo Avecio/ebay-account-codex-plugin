@@ -217,34 +217,69 @@ export async function ebayGetActiveListings(config, {
   };
 }
 
-export async function ebayListStagedPhotos(config) {
+function photoGroupPath(config, group) {
+  const raw = String(group ?? "").trim();
+  if (!raw) return config.photoStagingDir;
+
+  const safeGroup = basename(raw);
+  if (
+    !safeGroup ||
+    safeGroup !== raw ||
+    safeGroup === "." ||
+    safeGroup === ".." ||
+    raw.includes("/") ||
+    raw.includes("\\")
+  ) {
+    throw new Error("group must be one plain folder name inside the configured photo staging folder.");
+  }
+
+  return join(config.photoStagingDir, safeGroup);
+}
+
+export async function ebayListStagedPhotos(config, { group } = {}) {
   await mkdir(config.photoStagingDir, { recursive: true });
-  const names = await readdir(config.photoStagingDir);
+  const targetDir = photoGroupPath(config, group);
+  const names = await readdir(targetDir);
   const supported = new Set([".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".heic", ".webp"]);
   const files = [];
+  const groups = [];
+
   for (const name of names) {
+    const fullPath = join(targetDir, name);
+    const info = await stat(fullPath);
+
+    if (info.isDirectory() && !group) {
+      groups.push(name);
+      continue;
+    }
+
+    if (!info.isFile()) continue;
     const extension = extname(name).toLowerCase();
     if (!supported.has(extension)) continue;
-    const info = await stat(join(config.photoStagingDir, name));
-    if (!info.isFile()) continue;
     files.push({
       fileName: name,
       bytes: info.size,
       modifiedAt: info.mtime.toISOString(),
     });
   }
+
   files.sort((a, b) => a.fileName.localeCompare(b.fileName));
+  groups.sort((a, b) => a.localeCompare(b));
+
   return {
     stagingDir: config.photoStagingDir,
+    group: group || null,
+    targetDir,
+    groups,
     count: files.length,
     files,
   };
 }
 
-export async function ebayUploadStagedPhoto(config, fileName) {
+export async function ebayUploadStagedPhoto(config, fileName, { group } = {}) {
   const safeName = basename(String(fileName ?? ""));
   if (!safeName || safeName !== String(fileName ?? "")) {
-    throw new Error("fileName must be a plain file name from the configured photo staging folder.");
+    throw new Error("fileName must be a plain file name from the selected photo group.");
   }
 
   const extension = extname(safeName).toLowerCase();
@@ -266,7 +301,8 @@ export async function ebayUploadStagedPhoto(config, fileName) {
   }
 
   await mkdir(config.photoStagingDir, { recursive: true });
-  const filePath = join(config.photoStagingDir, safeName);
+  const targetDir = photoGroupPath(config, group);
+  const filePath = join(targetDir, safeName);
   const bytes = await readFile(filePath);
   const accessToken = await getValidAccessToken(config);
   const mediaBaseUrl = config.env === "production"
@@ -328,6 +364,7 @@ export async function ebayUploadStagedPhoto(config, fileName) {
   }
 
   return {
+    group: group || null,
     fileName: safeName,
     imageId,
     imageUrl: details.imageUrl || null,
